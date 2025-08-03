@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Alamat Pengiriman - Sigit Store</title>
+  <style>
+    :root{--bg:#f5f7fa;--card:#fff;--primary:#6366f1;--text:#1f2d3a;--muted:#6e7a89;--radius:1rem;--shadow:0 20px 40px -10px rgba(0,0,0,0.1);}
+    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);}
+    .container{max-width:600px;margin:0 auto;padding:2rem 1rem;}
+    .card{background:var(--card);border-radius:var(--radius);padding:1rem;box-shadow:var(--shadow);}
+    input, textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(100,100,125,0.2);margin-top:6px;font-size:.95rem;outline:none;}
+    .btn{padding:.75rem 1.5rem;border:none;border-radius:.75rem;background:var(--primary);color:#fff;cursor:pointer;font-weight:600;width:100%;}
+    .small{font-size:.8rem;color:var(--muted);}
+    a{display:inline-block;margin-bottom:12px;color:var(--primary);text-decoration:none;}
+  </style>
+</head>
+<body data-theme="light">
+  <div class="container">
+    <a href="cart.html">&larr; Kembali ke Keranjang</a>
+    <div class="card">
+      <h2 style="margin-top:0;">Alamat Pengiriman</h2>
+      <div class="small">Data ini disimpan lokal dan dipakai ketika di keranjang.</div>
+      <div style="margin-top:12px;">
+        <div class="small">Nama Penerima</div>
+        <input id="name" placeholder="Nama lengkap" />
+        <div class="small">Nomor HP</div>
+        <input id="phone" placeholder="08xxxxxxxxxx" />
+        <div class="small">Alamat Lengkap</div>
+        <textarea id="address" rows="2" placeholder="Jl. Contoh No.123, Jakarta"></textarea>
+        <div class="small">Catatan (opsional)</div>
+        <textarea id="note" rows="1" placeholder="Contoh: Jangan digoncang"></textarea>
+        <div style="margin-top:12px;">
+          <button class="btn" id="save">Simpan Alamat</button>
+        </div>
+      </div>
+      <div id="msg" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <script>
+    const ADDR_KEY="sigit_address";
+    function getAddr(){ try{return JSON.parse(localStorage.getItem(ADDR_KEY)||"{}");}catch{return {};} }
+    function saveAddr(a){ localStorage.setItem(ADDR_KEY, JSON.stringify(a)); }
+
+    const nameEl=document.getElementById("name");
+    const phoneEl=document.getElementById("phone");
+    const addressEl=document.getElementById("address");
+    const noteEl=document.getElementById("note");
+    const msg=document.getElementById("msg");
+
+    function populate(){
+      const a=getAddr();
+      if(a.name) nameEl.value=a.name;
+      if(a.phone) phoneEl.value=a.phone;
+      if(a.address) addressEl.value=a.address;
+      if(a.note) noteEl.value=a.note;
+    }
+
+    document.getElementById("save").addEventListener("click", ()=>{
+      const name=nameEl.value.trim();
+      const phone=phoneEl.value.trim();
+      const address=addressEl.value.trim();
+      const note=noteEl.value.trim();
+      if(!name || !phone || !address){ alert("Isi nama, telepon, dan alamat."); return; }
+      saveAddr({name,phone,address,note});
+      msg.innerHTML='<div style="color:green;">Alamat tersimpan.</div>';
+    });
+
+    populate();
+  </script>
+</body>
+</html>

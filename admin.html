@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Admin - Sigit Store</title>
+  <style>
+    :root{--bg:#f5f7fa;--card:#fff;--primary:#6366f1;--text:#1f2d3a;--muted:#6e7a89;--radius:1rem;--shadow:0 20px 40px -10px rgba(0,0,0,0.1);}
+    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);}
+    .container{max-width:900px;margin:0 auto;padding:2rem 1rem;}
+    .card{background:var(--card);border-radius:var(--radius);padding:1rem;box-shadow:var(--shadow);margin-bottom:1rem;}
+    .flex{display:flex;gap:1rem;align-items:center;}
+    .btn{padding:.6rem 1.2rem;border:none;border-radius:.75rem;background:var(--primary);color:#fff;cursor:pointer;font-weight:600;}
+    .outline{background:transparent;border:2px solid var(--primary);color:var(--primary);}
+    input, textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(100,100,125,0.2);font-size:.95rem;margin-top:4px;}
+    .thumb{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:8px;background:#eef2f7;margin-bottom:6px;}
+    .small{font-size:.75rem;color:var(--muted);}
+    .product-row{display:flex;gap:12px;align-items:center;margin-bottom:12px;border-bottom:1px solid rgba(0,0,0,0.08);padding-bottom:8px;}
+    .product-meta{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;}
+    .actions button{margin-right:6px;}
+    a{color:inherit;text-decoration:none;}
+  </style>
+</head>
+<body data-theme="light">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div><h2 style="margin:0;">Panel Admin</h2><div class="small">Kelola produk dan foto.</div></div>
+      <div><a href="index.html"><button class="btn outline">Lihat Toko</button></a></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Tambah / Edit Produk</h3>
+      <div class="flex" style="gap:1rem;flex-wrap:wrap;">
+        <div style="flex:1;min-width:220px;">
+          <div class="small">Nama</div>
+          <input id="name" placeholder="Nama produk" />
+          <div class="small">Deskripsi</div>
+          <textarea id="desc" rows="2" placeholder="Deskripsi singkat"></textarea>
+          <div class="small">Harga (angka)</div>
+          <input id="price" type="number" placeholder="199000" />
+          <div class="small">Tag</div>
+          <select id="tag">
+            <option value="all">Default</option>
+            <option value="new">Baru</option>
+            <option value="sale">Diskon</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:220px;">
+          <div class="small">Foto</div>
+          <img id="preview" class="thumb" alt="Preview" />
+          <input type="file" id="img" accept="image/*" />
+          <div class="small">Gambar disimpan sebagai data URL (preview lokal).</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" id="save">Simpan</button>
+        <button class="btn outline" id="clearAll">Kosongkan Semua</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Daftar Produk</h3>
+      <div id="list"></div>
+    </div>
+  </div>
+
+  <script>
+    const PROD_KEY="sigit_products";
+    function loadProducts(){ try{ return JSON.parse(localStorage.getItem(PROD_KEY)||"[]"); }catch{return [];} }
+    function saveProducts(p){ localStorage.setItem(PROD_KEY, JSON.stringify(p)); }
+    function fmtRp(v){ return "Rp " + v.toString().replace(/\B(?=(\d{3})+(?!\d))/g,"."); }
+
+    const nameEl=document.getElementById("name");
+    const descEl=document.getElementById("desc");
+    const priceEl=document.getElementById("price");
+    const tagEl=document.getElementById("tag");
+    const imgEl=document.getElementById("img");
+    const preview=document.getElementById("preview");
+    const saveBtn=document.getElementById("save");
+    const listDiv=document.getElementById("list");
+    const clearAllBtn=document.getElementById("clearAll");
+
+    let editId=null;
+
+    function renderList(){
+      const prods=loadProducts();
+      listDiv.innerHTML="";
+      if(prods.length===0){
+        listDiv.innerHTML="<div class='small'>Belum ada produk.</div>";
+        return;
+      }
+      prods.forEach(p=>{
+        const row=document.createElement("div");
+        row.className="product-row";
+        row.innerHTML=`
+          <div style="flex:0 0 80px;"><img src="${p.image||''}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:6px;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22><rect width=%2280%22 height=%2280%22 fill=%23ececec/></svg>';" /></div>
+          <div style="flex:1;">
+            <div><strong>${p.name}</strong> ${p.tag==="new"?'<span style="background:#10b981;color:#fff;padding:2px 6px;border-radius:5px;font-size:.55rem;">Baru</span>':''} ${p.tag==="sale"?'<span style="background:#ff6b6b;color:#fff;padding:2px 6px;border-radius:5px;font-size:.55rem;">Diskon</span>':''}</div>
+            <div class="small">${p.desc}</div>
+          </div>
+          <div style="min-width:120px;">
+            <div class="small">Harga</div>
+            <div>${fmtRp(p.price)}</div>
+          </div>
+          <div class="actions">
+            <button onclick="edit(${p.id})" class="btn" style="padding:.35rem .75rem;font-size:.75rem;">Edit</button>
+            <button onclick="remove(${p.id})" class="btn" style="padding:.35rem .75rem;font-size:.75rem;background:#ff4d4f;">Hapus</button>
+          </div>
+        `;
+        listDiv.appendChild(row);
+      });
+    }
+
+    function resetForm(){
+      editId=null;
+      nameEl.value="";
+      descEl.value="";
+      priceEl.value="";
+      tagEl.value="all";
+      preview.src="";
+      imgEl.value="";
+    }
+
+    imgEl.addEventListener("change", e=>{
+      const f=e.target.files[0];
+      if(!f) return;
+      const r=new FileReader();
+      r.onload=()=> preview.src=r.result;
+      r.readAsDataURL(f);
+    });
+
+    saveBtn.addEventListener("click", ()=>{
+      const name=nameEl.value.trim();
+      const desc=descEl.value.trim();
+      const price=parseInt(priceEl.value);
+      const tag=tagEl.value;
+      const image=preview.src||"";
+      if(!name || isNaN(price) || price<=0){ alert("Nama + harga valid diperlukan."); return; }
+      let prods=loadProducts();
+      if(editId){
+        const idx=prods.findIndex(p=>p.id===editId);
+        if(idx!==-1) prods[idx]={id:editId,name,desc,price,tag,image};
+      } else {
+        prods.push({id:Date.now(),name,desc,price,tag,image});
+      }
+      saveProducts(prods);
+      resetForm();
+      renderList();
+      alert("Disimpan.");
+    });
+
+    function edit(id){
+      const prods=loadProducts();
+      const p=prods.find(o=>o.id===id);
+      if(!p) return;
+      editId=p.id;
+      nameEl.value=p.name;
+      descEl.value=p.desc;
+      priceEl.value=p.price;
+      tagEl.value=p.tag;
+      preview.src=p.image||"";
+    }
+
+    function remove(id){
+      if(!confirm("Hapus produk ini?")) return;
+      let prods=loadProducts();
+      prods=prods.filter(p=>p.id!==id);
+      saveProducts(prods);
+      renderList();
+    }
+
+    clearAllBtn.addEventListener("click", ()=>{
+      if(confirm("Hapus semua produk?")){ localStorage.removeItem(PROD_KEY); renderList(); }
+    });
+
+    // init
+    renderList();
+  </script>
+</body>
+</html>

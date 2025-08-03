@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout - Sigit Store</title>
+  <style>
+    /* Global Styles */
+    :root {
+      --bg: #f5f7fa;
+      --card: #fff;
+      --primary: #6366f1;
+      --text: #1f2d3a;
+      --muted: #6e7a89;
+      --radius: 1rem;
+      --shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+    }
+
+    h3 {
+      margin-top: 0;
+    }
+
+    .price {
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+
+    .btn {
+      background: #6366f1;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .small {
+      font-size: .85rem;
+      color: #6e7a89;
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(100, 100, 125, 0.1);
+      margin: 12px 0;
+    }
+
+    #items div {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(100, 100, 125, 0.1);
+    }
+
+    #items div:last-child {
+      border-bottom: none;
+    }
+
+    #addrSummary p {
+      font-size: 0.85rem;
+      color: #6e7a89;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="container" style="display: flex; justify-content: space-between; align-items: center;">
+    <div><a href="index.html" style="font-weight: 700; font-size: 1.25rem; text-decoration: none; color: inherit;">Sigit Store</a></div>
+    <div><h2 style="margin: 0;">Checkout</h2></div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container">
+    <div class="card">
+      <h3>Ringkasan Belanja</h3>
+      <div id="items"></div>
+      <div class="divider"></div>
+      <div style="display: flex; justify-content: space-between;">
+        <div class="small">Subtotal</div><div id="subtotal" class="price">Rp 0</div>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <div class="small">Ongkir</div><div id="shipping" class="price">Rp 0</div>
+      </div>
+      <div class="divider"></div>
+      <div style="display: flex; justify-content: space-between; font-size: 1.1rem;">
+        <div><strong>Total</strong></div><div id="total" class="price">Rp 0</div>
+      </div>
+      <div style="margin-top: 12px;">
+        <button class="btn">Konfirmasi Pembayaran</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Format Rupiah
+    function fmtRp(v) { return "Rp " + v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+
+    const CART_KEY = "sigit_cart";
+
+    // Get Cart from localStorage
+    function getCart() {
+      try {
+        return JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    // Compute subtotal, shipping, and total
+    function compute(cart) {
+      let subtotal = 0;
+      cart.forEach(i => subtotal += i.price * i.qty);
+      const shipping = subtotal > 0 ? 15000 : 0;
+      return { subtotal, shipping, total: subtotal + shipping };
+    }
+
+    // Render Cart, Summary
+    function render() {
+      const cart = getCart();
+      const itemsDiv = document.getElementById("items");
+      itemsDiv.innerHTML = "";
+
+      cart.forEach(it => {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.justifyContent = "space-between";
+        row.style.padding = "8px 0";
+        row.style.borderBottom = "1px solid rgba(100, 100, 125, 0.1)";
+        row.innerHTML = `
+          <div><strong>${it.name}</strong></div>
+          <div class="price">${fmtRp(it.price * it.qty)}</div>
+        `;
+        itemsDiv.appendChild(row);
+      });
+
+      const s = compute(cart);
+      document.getElementById("subtotal").textContent = fmtRp(s.subtotal);
+      document.getElementById("shipping").textContent = fmtRp(s.shipping);
+      document.getElementById("total").textContent = fmtRp(s.total);
+    }
+
+    // Initialize
+    render();
+  </script>
+
+</body>
+</html>

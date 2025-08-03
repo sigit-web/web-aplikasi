@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Keranjang - Sigit Store</title>
+  <style>
+    /* Global Styles */
+    :root {
+      --bg: #f5f7fa;
+      --card: #fff;
+      --primary: #6366f1;
+      --text: #1f2d3a;
+      --muted: #6e7a89;
+      --radius: 1rem;
+      --shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .flex {
+      display: flex;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 1rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1rem;
+    }
+
+    .btn {
+      padding: .75rem 1.5rem;
+      border: none;
+      border-radius: .75rem;
+      background: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      width: 100%;
+    }
+
+    .small {
+      font-size: .85rem;
+      color: var(--muted);
+    }
+
+    .price {
+      font-weight: 700;
+    }
+
+    .thumb {
+      width: 64px;
+      height: 64px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #eef2f7;
+      flex-shrink: 0;
+    }
+
+    .input-q {
+      width: 60px;
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(100, 100, 125, 0.2);
+      text-align: center;
+    }
+
+    .remove {
+      background: none;
+      border: none;
+      color: #ff4d4f;
+      cursor: pointer;
+      font-size: .9rem;
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(100, 100, 125, 0.1);
+      margin: 12px 0;
+    }
+
+    .empty {
+      padding: 2rem;
+      text-align: center;
+      border-radius: 1rem;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="container" style="display: flex; justify-content: space-between; align-items: center;">
+    <div><a href="index.html" style="font-weight: 700; font-size: 1.25rem; text-decoration: none; color: inherit;">Sigit Store</a></div>
+    <div><h2 style="margin: 0;">Keranjang</h2></div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container">
+    <div class="flex" style="gap: 2rem;">
+      <div style="flex: 2; min-width: 300px;">
+        <!-- Cart Content -->
+        <div class="card">
+          <h3>Isi Keranjang</h3>
+          <div id="items"></div>
+          <div id="empty" class="empty" style="display: none;">
+            <p>Keranjang kosong.</p>
+            <a href="index.html"><button class="btn">Belanja Sekarang</button></a>
+          </div>
+        </div>
+
+        <!-- Address Content -->
+        <div class="card">
+          <div class="small">Alamat Pengiriman</div>
+          <div id="addrSummary"></div>
+          <div style="margin-top: 6px;">
+            <a href="address.html"><button class="btn" style="background: #10b981;">Isi / Ubah Alamat</button></a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Content -->
+      <div style="flex: 1; min-width: 280px;">
+        <div class="card">
+          <h3>Ringkasan</h3>
+          <div class="divider"></div>
+          <div style="display: flex; justify-content: space-between;">
+            <div class="small">Subtotal</div><div id="subtotal" class="price">Rp 0</div>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <div class="small">Ongkir</div><div id="shipping" class="price">Rp 0</div>
+          </div>
+          <div class="divider"></div>
+          <div style="display: flex; justify-content: space-between; font-size: 1.1rem;">
+            <div><strong>Total</strong></div><div id="total" class="price">Rp 0</div>
+          </div>
+          <div style="margin-top: 12px;">
+            <button class="btn" id="toCheckout">Lanjut ke Checkout</button>
+            <button class="btn" id="clear" style="margin-top: 6px; background: transparent; color: var(--primary); border: 2px solid var(--primary);">Kosongkan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Format Rupiah
+    function fmtRp(v) { return "Rp " + v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+
+    const CART_KEY = "sigit_cart";
+    const ADDR_KEY = "sigit_address";
+
+    // Get Cart from localStorage
+    function getCart() {
+      try {
+        return JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    // Save Cart to localStorage
+    function saveCart(c) {
+      localStorage.setItem(CART_KEY, JSON.stringify(c));
+    }
+
+    // Get Address from localStorage
+    function getAddr() {
+      try {
+        return JSON.parse(localStorage.getItem(ADDR_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    // Compute subtotal, shipping, and total
+    function compute(cart) {
+      let subtotal = 0;
+      cart.forEach(i => subtotal += i.price * i.qty);
+      const shipping = subtotal > 0 ? 15000 : 0;
+      return { subtotal, shipping, total: subtotal + shipping };
+    }
+
+    // Render Cart, Address, and Summary
+    function render() {
+      const cart = getCart();
+      const itemsDiv = document.getElementById("items");
+      const empty = document.getElementById("empty");
+      itemsDiv.innerHTML = "";
+      if (cart.length === 0) {
+        empty.style.display = "block";
+      } else {
+        empty.style.display = "none";
+        cart.forEach(it => {
+          const row = document.createElement("div");
+          row.style.display = "flex";
+          row.style.gap = "12px";
+          row.style.marginBottom = "12px";
+          row.style.alignItems = "center";
+          row.innerHTML = `
+            <div><img src="${it.image || ''}" class="thumb" alt="${it.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22><rect width=%2264%22 height=%2264%22 fill=%23ececec/></svg>';" /></div>
+            <div style="flex: 1;">
+              <div><strong>${it.name}</strong></div>
+              <div class="small">${it.desc || ''}</div>
+              <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px;">
+                <div class="small">Harga: ${fmtRp(it.price)}</div>
+                <div class="small">
+                  Jumlah:
+                  <input type="number" min="1" value="${it.qty}" class="input-q" data-id="${it.id}" style="width: 50px; padding: 4px; border-radius: 6px; border: 1px solid rgba(0, 0, 0, 0.1);" />
+                </div>
+                <button class="remove" data-id="${it.id}">Hapus</button>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div class="small">Sub</div>
+              <div class="price">${fmtRp(it.price * it.qty)}</div>
+            </div>
+          `;
+          itemsDiv.appendChild(row);
+        });
+
+        // Handle input change for quantity
+        document.querySelectorAll('.input-q').forEach(inp => {
+          inp.addEventListener("change", () => {
+            const id = parseInt(inp.getAttribute("data-id"));
+            let v = parseInt(inp.value);
+            if (isNaN(v) || v < 1) v = 1;
+            const cart = getCart();
+            const idx = cart.findIndex(i => i.id === id);
+            if (idx !== -1) {
+              cart[idx].qty = v;
+              saveCart(cart);
+              render();
+              updateSummary();
+            }
+          });
+        });
+
+        // Handle remove button click
+        document.querySelectorAll('.remove').forEach(b => {
+          b.addEventListener("click", () => {
+            const id = parseInt(b.getAttribute("data-id"));
+            let cart = getCart();
+            cart = cart.filter(i => i.id !== id);
+            saveCart(cart);
+            render();
+            updateSummary();
+          });
+        });
+      }
+      updateSummary();
+      renderAddress();
+    }
+
+    // Update Summary Section
+    function updateSummary() {
+      const cart = getCart();
+      const s = compute(cart);
+      document.getElementById("subtotal").textContent = fmtRp(s.subtotal);
+      document.getElementById("shipping").textContent = fmtRp(s.shipping);
+      document.getElementById("total").textContent = fmtRp(s.total);
+    }
+
+    // Render Address
+    function renderAddress() {
+      const a = getAddr();
+      const container = document.getElementById("addrSummary");
+      if (a.name) {
+        container.innerHTML = `
+          <div><strong>${a.name}</strong> (${a.phone})</div>
+          <div style="font-size: .85rem;">${a.address}</div>
+          ${a.note ? `<div style="font-size: .75rem; color: gray;">Catatan: ${a.note}</div>` : ""}
+        `;
+      } else {
+        container.innerHTML = '<div class="small">Belum diisi. Klik "Isi / Ubah Alamat".</div>';
+      }
+    }
+
+    // Clear Cart
+    document.getElementById("clear").addEventListener("click", () => {
+      if (confirm("Kosongkan keranjang?")) {
+        localStorage.removeItem(CART_KEY);
+        render();
+      }
+    });
+
+    // Checkout Button
+    document.getElementById("toCheckout").addEventListener("click", () => {
+      const a = getAddr();
+      if (!a.name || !a.address) {
+        alert("Isi alamat pengiriman dulu.");
+        return;
+      }
+      localStorage.setItem("toCheckout", true);
+      window.location.href = "checkout.html";
+    });
+
+    // Initialize
+    render();
+    updateSummary();
+  </script>
+
+</body>
+</html>
